@@ -13,6 +13,7 @@ import com.google.api.client.util.store.FileDataStoreFactory;
 import com.google.api.services.admin.directory.Directory;
 import com.google.api.services.admin.directory.DirectoryScopes;
 import com.google.api.services.admin.directory.model.Group;
+import com.google.api.services.admin.directory.model.Member;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -71,6 +72,16 @@ public class Main {
                 .setMaxResults(100)
                 .execute().getGroups();
 
-        System.out.println();
+        groups.forEach(group -> {
+            System.out.println("group " + group.getEmail());
+            try {
+                List<Member> members = service.members().list(group.getEmail()).execute().getMembers();
+                members.forEach(member -> System.out.println(member.getEmail()));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            System.out.println("###");
+            System.out.println();
+        });
     }
 }
