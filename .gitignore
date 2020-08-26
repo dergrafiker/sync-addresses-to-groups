@@ -157,3 +157,6 @@ gradle-app.setting
 **/build/
 
 # End of https://www.toptal.com/developers/gitignore/api/gradle,java,intellij
+
+# never commit
+/src/main/resources/credentials.json
