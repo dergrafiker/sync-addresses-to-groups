@@ -76,15 +76,20 @@ public class Main {
                 .execute().getGroups();
 
         groups.forEach(group -> {
-            System.out.println("group " + group.getEmail());
-            try {
-                List<Member> members = service.members().list(group.getEmail()).execute().getMembers();
-                members.forEach(member -> System.out.println(member.getEmail()));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+            String groupEmail = group.getEmail();
+
+            String prefix = groupEmail.split("@")[0];
+            if (memberMapFromExternalFile.containsKey(prefix)) {
+                System.out.println("group " + groupEmail);
+                try {
+                    List<Member> members = service.members().list(groupEmail).execute().getMembers();
+                    members.forEach(member -> System.out.println(member.getEmail()));
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                System.out.println("###");
+                System.out.println();
             }
-            System.out.println("###");
-            System.out.println();
         });
     }
 
