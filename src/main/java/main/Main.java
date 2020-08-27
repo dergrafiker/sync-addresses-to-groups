@@ -107,6 +107,13 @@ public class Main {
                 break;
             case PROCEED:
                 System.out.println("applying changes");
+                sync(service, usersToPutOrKeepInGroup, groupForAllUsers);
+
+                groupsToSync.forEach(groupEmail -> {
+                    Group groupToSync = emailToGroupMap.get(groupEmail).get(0);
+                    List<String> usersToKeepInGroup = memberMapFromExternalFile.computeIfAbsent(groupEmail, s -> new ArrayList<>());
+                    sync(service, usersToKeepInGroup, groupToSync);
+                });
                 break;
             default:
                 throw new IllegalStateException("Unexpected value: " + userAction);
@@ -155,6 +162,45 @@ public class Main {
         toDelete.forEach(s -> System.out.println("DELETE " + s));
         toInsert.forEach(s -> System.out.println("INSERT " + s));
         System.out.println();
+    }
+
+    private static void sync(Directory service, Collection<String> usersToPutOrKeepInGroup, Group group) {
+        Map<String, List<Member>> currentGroupMembersByEmail = getMembers(service, group).stream()
+                .collect(groupingBy(member -> member.getEmail().toLowerCase())); //toLower is important to avoid mismatches
+        Set<String> emailsOfCurrentGroupMembers = currentGroupMembersByEmail.keySet();
+
+        List<String> toInsert = new ArrayList<>(CollectionUtils.subtract(usersToPutOrKeepInGroup, emailsOfCurrentGroupMembers));
+        List<String> toDelete = new ArrayList<>(CollectionUtils.subtract(emailsOfCurrentGroupMembers, usersToPutOrKeepInGroup));
+
+        Collections.sort(toInsert);
+        Collections.sort(toDelete);
+
+        String groupKey = group.getEmail();
+        System.out.println(groupKey);
+        toDelete.forEach(userToDelete -> deleteUser(service, groupKey, userToDelete));
+        toInsert.forEach(userToInsert -> insertUser(service, groupKey, userToInsert));
+
+        System.out.println();
+    }
+
+    private static void insertUser(Directory service, String groupKey, String emailToInsert) {
+        try {
+            System.out.printf("inserting email %s into group %s%n", emailToInsert, groupKey);
+            Member toInsert = new Member();
+            toInsert.setEmail(emailToInsert);
+            service.members().insert(groupKey, toInsert);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static void deleteUser(Directory service, String groupKey, String emailToDelete) {
+        try {
+            System.out.printf("removing email %s from group %s%n", emailToDelete, groupKey);
+            service.members().delete(groupKey, emailToDelete).execute();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static String getUserFromEmail(String email) {
