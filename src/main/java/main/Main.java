@@ -23,8 +23,10 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.groupingBy;
@@ -76,7 +78,14 @@ public class Main {
         Directory service = getDirectoryClient();
 
         List<Group> groups = getAllGroups(service);
+        Map<String, List<Group>> emailToGroupMap = groups.stream().collect(groupingBy(Group::getEmail));
 
+        Set<String> allUsers = memberMapFromExternalFile.values().stream().flatMap(Collection::stream).collect(Collectors.toSet());
+
+        Group groupForAllUsers = emailToGroupMap.get(putAllMembersIn.get(0)).get(0);
+
+
+        System.out.println();
 
     }
 

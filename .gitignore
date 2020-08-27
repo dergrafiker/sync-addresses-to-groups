@@ -159,3 +159,5 @@ gradle-app.setting
 **/resources/credentials.json
 **/resources/StoredCredential
 **/resources/mapping
+**/resources/groupsToSync
+**/resources/putAllMembersIn
