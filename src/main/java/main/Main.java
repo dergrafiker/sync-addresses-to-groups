@@ -79,9 +79,8 @@ public class Main {
                 .execute().getGroups();
 
         groups.forEach(group -> {
-            String groupEmail = group.getEmail();
-            String prefix = groupEmail.split("@")[0];
-            if (memberMapFromExternalFile.containsKey(prefix)) {
+            if (groupIsPresentInMemberMap(group, memberMapFromExternalFile)) {
+                String groupEmail = group.getEmail();
                 System.out.println("group " + groupEmail);
                 try {
                     List<Member> members = service.members().list(groupEmail).execute().getMembers();
@@ -93,6 +92,11 @@ public class Main {
                 System.out.println();
             }
         });
+    }
+
+    private static boolean groupIsPresentInMemberMap(Group group, Map<String, List<String>> memberMapFromExternalFile) {
+        String beforeAt = group.getEmail().split("@")[0];
+        return memberMapFromExternalFile.containsKey(beforeAt);
     }
 
     // Build a new authorized API client service.
