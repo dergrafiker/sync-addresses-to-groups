@@ -25,6 +25,7 @@ import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.mapping;
@@ -68,30 +69,42 @@ public class Main {
     }
 
     public static void main(String... args) throws IOException, GeneralSecurityException {
-
         Map<String, List<String>> memberMapFromExternalFile = readMemberMapFromExternalFile("mapping");
+        List<String> groupsToSync = readLinesFromExternalFile("groupsToSync");
+        List<String> putAllMembersIn = readLinesFromExternalFile("putAllMembersIn");
 
         Directory service = getDirectoryClient();
 
+        List<Group> groups = getAllGroups(service);
+
+
+    }
+
+    private static List<Group> getAllGroups(Directory service) throws IOException {
         List<Group> groups = service.groups().list()
                 .setCustomer("my_customer")
                 .setMaxResults(100)
                 .execute().getGroups();
+        return groups;
+    }
 
-        groups.forEach(group -> {
-            if (groupIsPresentInMemberMap(group, memberMapFromExternalFile)) {
-                String groupEmail = group.getEmail();
-                System.out.println("group " + groupEmail);
-                try {
-                    List<Member> members = service.members().list(groupEmail).execute().getMembers();
-                    members.forEach(member -> System.out.println(member.getEmail()));
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-                System.out.println("###");
-                System.out.println();
+    private static List<String> readLinesFromExternalFile(String resourceName) throws IOException {
+        try (InputStream resourceAsStream = Main.class.getClassLoader().getResourceAsStream(resourceName)) {
+            if (resourceAsStream == null) {
+                throw new IllegalArgumentException(resourceName + " could not be found");
             }
-        });
+            return new BufferedReader(new InputStreamReader(resourceAsStream, StandardCharsets.UTF_8))
+                    .lines()
+                    .collect(Collectors.toList());
+        }
+    }
+
+    private static List<Member> getMembers(Directory service, Group group) {
+        try {
+            return service.members().list(group.getEmail()).execute().getMembers();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private static boolean groupIsPresentInMemberMap(Group group, Map<String, List<String>> memberMapFromExternalFile) {
@@ -108,17 +121,12 @@ public class Main {
     }
 
     private static Map<String, List<String>> readMemberMapFromExternalFile(String resourceName) throws IOException {
-        try (InputStream mapping = Main.class.getClassLoader().getResourceAsStream(resourceName)) {
-            if (mapping == null) {
-                throw new IllegalArgumentException(resourceName + " could not be found");
-            }
-            return new BufferedReader(new InputStreamReader(mapping, StandardCharsets.UTF_8))
-                    .lines()
-                    .map(String::toLowerCase)
-                    .map(line -> line.split(":"))
-                    .collect(groupingBy(groupAndUserEmail -> groupAndUserEmail[0],
-                            mapping(strings -> strings[1], toList())
-                    ));
-        }
+        return readLinesFromExternalFile(resourceName).stream()
+                .map(String::toLowerCase)
+                .map(line -> line.split(":"))
+                .collect(groupingBy(groupAndUserEmail -> groupAndUserEmail[0],
+                        mapping(strings -> strings[1], toList())
+                ));
+
     }
 }
