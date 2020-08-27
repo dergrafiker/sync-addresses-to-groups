@@ -68,14 +68,7 @@ public class Main {
 
         Map<String, List<String[]>> memberMapFromExternalFile = readMemberMapFromExternalFile("mapping");
 
-        System.out.println();
-
-
-        // Build a new authorized API client service.
-        final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
-        Directory service = new Directory.Builder(HTTP_TRANSPORT, JSON_FACTORY, getCredentials(HTTP_TRANSPORT))
-                .setApplicationName(APPLICATION_NAME)
-                .build();
+        Directory service = getDirectoryClient();
 
         List<Group> groups = service.groups().list()
                 .setCustomer("my_customer")
@@ -93,6 +86,14 @@ public class Main {
             System.out.println("###");
             System.out.println();
         });
+    }
+
+    // Build a new authorized API client service.
+    private static Directory getDirectoryClient() throws GeneralSecurityException, IOException {
+        final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
+        return new Directory.Builder(HTTP_TRANSPORT, JSON_FACTORY, getCredentials(HTTP_TRANSPORT))
+                .setApplicationName(APPLICATION_NAME)
+                .build();
     }
 
     private static Map<String, List<String[]>> readMemberMapFromExternalFile(String resourceName) throws IOException {
