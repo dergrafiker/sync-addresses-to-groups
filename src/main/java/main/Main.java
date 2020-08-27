@@ -148,8 +148,7 @@ public class Main {
     }
 
     private static void pretendSync(Directory service, Collection<String> usersToPutOrKeepInGroup, Group group) {
-        Map<String, List<Member>> currentGroupMembersByEmail = getMembers(service, group).stream()
-                .collect(groupingBy(member -> member.getEmail().toLowerCase())); //toLower is important to avoid mismatches
+        Map<String, List<Member>> currentGroupMembersByEmail = groupMemberByLowerCaseEmail(getMembers(service, group));
         Set<String> emailsOfCurrentGroupMembers = currentGroupMembersByEmail.keySet();
 
         List<String> toInsert = new ArrayList<>(CollectionUtils.subtract(usersToPutOrKeepInGroup, emailsOfCurrentGroupMembers));
@@ -164,9 +163,13 @@ public class Main {
         System.out.println();
     }
 
+    private static Map<String, List<Member>> groupMemberByLowerCaseEmail(List<Member> members) {
+        return members.stream()
+                .collect(groupingBy(member -> member.getEmail().toLowerCase()));
+    }
+
     private static void sync(Directory service, Collection<String> usersToPutOrKeepInGroup, Group group) {
-        Map<String, List<Member>> currentGroupMembersByEmail = getMembers(service, group).stream()
-                .collect(groupingBy(member -> member.getEmail().toLowerCase())); //toLower is important to avoid mismatches
+        Map<String, List<Member>> currentGroupMembersByEmail = groupMemberByLowerCaseEmail(getMembers(service, group));
         Set<String> emailsOfCurrentGroupMembers = currentGroupMembersByEmail.keySet();
 
         List<String> toInsert = new ArrayList<>(CollectionUtils.subtract(usersToPutOrKeepInGroup, emailsOfCurrentGroupMembers));
