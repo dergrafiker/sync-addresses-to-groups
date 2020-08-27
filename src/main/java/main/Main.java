@@ -81,7 +81,7 @@ public class Main {
         Directory service = getDirectoryClient();
 
         List<Group> groups = getAllGroups(service);
-        Map<String, List<Group>> emailToGroupMap = groups.stream().collect(groupingBy(group -> group.getEmail().toLowerCase().split("@")[0]));
+        Map<String, List<Group>> emailToGroupMap = groups.stream().collect(groupingBy(group -> getUserFromEmail(group.getEmail().toLowerCase())));
 
         Set<String> usersToPutOrKeepInGroup = memberMapFromExternalFile.values().stream().flatMap(Collection::stream).collect(Collectors.toSet());
 
@@ -115,12 +115,15 @@ public class Main {
         toInsert.forEach(s -> System.out.println("INSERT " + s));
     }
 
+    private static String getUserFromEmail(String email) {
+        return email.split("@")[0];
+    }
+
     private static List<Group> getAllGroups(Directory service) throws IOException {
-        List<Group> groups = service.groups().list()
+        return service.groups().list()
                 .setCustomer("my_customer")
                 .setMaxResults(100)
                 .execute().getGroups();
-        return groups;
     }
 
     private static List<String> readLinesFromExternalFile(String resourceName) throws IOException {
