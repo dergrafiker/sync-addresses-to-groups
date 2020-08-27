@@ -188,7 +188,7 @@ public class Main {
             System.out.printf("inserting email %s into group %s%n", emailToInsert, groupKey);
             Member toInsert = new Member();
             toInsert.setEmail(emailToInsert);
-            service.members().insert(groupKey, toInsert);
+            service.members().insert(groupKey, toInsert).execute();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
