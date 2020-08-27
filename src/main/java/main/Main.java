@@ -25,7 +25,10 @@ import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.mapping;
+import static java.util.stream.Collectors.toList;
 
 public class Main {
     private static final String APPLICATION_NAME = "Google Admin SDK Directory API Java Quickstart";
@@ -66,7 +69,7 @@ public class Main {
 
     public static void main(String... args) throws IOException, GeneralSecurityException {
 
-        Map<String, List<String[]>> memberMapFromExternalFile = readMemberMapFromExternalFile("mapping");
+        Map<String, List<String>> memberMapFromExternalFile = readMemberMapFromExternalFile("mapping");
 
         Directory service = getDirectoryClient();
 
@@ -77,7 +80,6 @@ public class Main {
 
         groups.forEach(group -> {
             String groupEmail = group.getEmail();
-
             String prefix = groupEmail.split("@")[0];
             if (memberMapFromExternalFile.containsKey(prefix)) {
                 System.out.println("group " + groupEmail);
@@ -101,7 +103,7 @@ public class Main {
                 .build();
     }
 
-    private static Map<String, List<String[]>> readMemberMapFromExternalFile(String resourceName) throws IOException {
+    private static Map<String, List<String>> readMemberMapFromExternalFile(String resourceName) throws IOException {
         try (InputStream mapping = Main.class.getClassLoader().getResourceAsStream(resourceName)) {
             if (mapping == null) {
                 throw new IllegalArgumentException(resourceName + " could not be found");
@@ -110,7 +112,9 @@ public class Main {
                     .lines()
                     .map(String::toLowerCase)
                     .map(line -> line.split(":"))
-                    .collect(Collectors.groupingBy(groupAndUserEmail -> groupAndUserEmail[0]));
+                    .collect(groupingBy(groupAndUserEmail -> groupAndUserEmail[0],
+                            mapping(strings -> strings[1], toList())
+                    ));
         }
     }
 }
