@@ -148,8 +148,7 @@ public class Main {
     }
 
     private static void pretendSync(Directory service, Collection<String> usersToPutOrKeepInGroup, Group group) {
-        Map<String, List<Member>> currentGroupMembersByEmail = groupMemberByLowerCaseEmail(getMembers(service, group));
-        Set<String> emailsOfCurrentGroupMembers = currentGroupMembersByEmail.keySet();
+        Set<String> emailsOfCurrentGroupMembers = collectLowerCaseEmails(getMembers(service, group));
 
         List<String> toInsert = new ArrayList<>(CollectionUtils.subtract(usersToPutOrKeepInGroup, emailsOfCurrentGroupMembers));
         List<String> toDelete = new ArrayList<>(CollectionUtils.subtract(emailsOfCurrentGroupMembers, usersToPutOrKeepInGroup));
@@ -163,14 +162,12 @@ public class Main {
         System.out.println();
     }
 
-    private static Map<String, List<Member>> groupMemberByLowerCaseEmail(List<Member> members) {
-        return members.stream()
-                .collect(groupingBy(member -> member.getEmail().toLowerCase()));
+    private static Set<String> collectLowerCaseEmails(List<Member> members) {
+        return members.stream().map(member -> member.getEmail().toLowerCase()).collect(Collectors.toSet());
     }
 
     private static void sync(Directory service, Collection<String> usersToPutOrKeepInGroup, Group group) {
-        Map<String, List<Member>> currentGroupMembersByEmail = groupMemberByLowerCaseEmail(getMembers(service, group));
-        Set<String> emailsOfCurrentGroupMembers = currentGroupMembersByEmail.keySet();
+        Set<String> emailsOfCurrentGroupMembers = collectLowerCaseEmails(getMembers(service, group));
 
         List<String> toInsert = new ArrayList<>(CollectionUtils.subtract(usersToPutOrKeepInGroup, emailsOfCurrentGroupMembers));
         List<String> toDelete = new ArrayList<>(CollectionUtils.subtract(emailsOfCurrentGroupMembers, usersToPutOrKeepInGroup));
