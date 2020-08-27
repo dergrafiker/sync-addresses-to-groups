@@ -15,6 +15,7 @@ import com.google.api.services.admin.directory.DirectoryScopes;
 import com.google.api.services.admin.directory.model.Group;
 import com.google.api.services.admin.directory.model.Member;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -29,6 +30,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -87,19 +89,58 @@ public class Main {
 
         Group groupForAllUsers = emailToGroupMap.get(putAllMembersIn.get(0)).get(0);
 
-        sync(service, usersToPutOrKeepInGroup, groupForAllUsers);
-        System.out.println();
+        pretendSync(service, usersToPutOrKeepInGroup, groupForAllUsers);
 
         groupsToSync.forEach(groupEmail -> {
             Group groupToSync = emailToGroupMap.get(groupEmail).get(0);
             List<String> usersToKeepInGroup = memberMapFromExternalFile.computeIfAbsent(groupEmail, s -> new ArrayList<>());
-            sync(service, usersToKeepInGroup, groupToSync);
-            System.out.println();
+            pretendSync(service, usersToKeepInGroup, groupToSync);
         });
 
+        System.out.println("check output above for errors before proceeding");
+
+        UserAction userAction = askUserInput();
+
+        switch (userAction) {
+            case EXIT:
+                System.out.println("exiting program");
+                break;
+            case PROCEED:
+                System.out.println("applying changes");
+                break;
+            default:
+                throw new IllegalStateException("Unexpected value: " + userAction);
+        }
     }
 
-    private static void sync(Directory service, Collection<String> usersToPutOrKeepInGroup, Group group) {
+    private static UserAction askUserInput() {
+        String randomAlphanumeric = RandomStringUtils.randomAlphanumeric(20);
+        String userInput = null;
+        try (Scanner scanner = new Scanner(System.in)) {
+            while (!userConfirmsToProceed(randomAlphanumeric, userInput) && !userExits(userInput)) {
+                String message = String.format("to proceed enter [ %s ] or enter exit to cancel the program %n", randomAlphanumeric);
+                System.out.println(message);
+                userInput = scanner.nextLine();
+            }
+        }
+
+        if (userExits(userInput)) {
+            return UserAction.EXIT;
+        } else if (userConfirmsToProceed(randomAlphanumeric, userInput)) {
+            return UserAction.PROCEED;
+        }
+        return UserAction.INVALID;
+    }
+
+    private static boolean userExits(String userInput) {
+        return "exit".equals(userInput);
+    }
+
+    private static boolean userConfirmsToProceed(String randomAlphanumeric, String userInput) {
+        return randomAlphanumeric.equals(userInput);
+    }
+
+    private static void pretendSync(Directory service, Collection<String> usersToPutOrKeepInGroup, Group group) {
         Map<String, List<Member>> currentGroupMembersByEmail = getMembers(service, group).stream()
                 .collect(groupingBy(member -> member.getEmail().toLowerCase())); //toLower is important to avoid mismatches
         Set<String> emailsOfCurrentGroupMembers = currentGroupMembersByEmail.keySet();
@@ -113,6 +154,7 @@ public class Main {
         System.out.println(group.getEmail());
         toDelete.forEach(s -> System.out.println("DELETE " + s));
         toInsert.forEach(s -> System.out.println("INSERT " + s));
+        System.out.println();
     }
 
     private static String getUserFromEmail(String email) {
