@@ -14,6 +14,7 @@ import com.google.api.services.admin.directory.Directory;
 import com.google.api.services.admin.directory.DirectoryScopes;
 import com.google.api.services.admin.directory.model.Group;
 import com.google.api.services.admin.directory.model.Member;
+import org.apache.commons.collections4.CollectionUtils;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -22,8 +23,10 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -78,15 +81,38 @@ public class Main {
         Directory service = getDirectoryClient();
 
         List<Group> groups = getAllGroups(service);
-        Map<String, List<Group>> emailToGroupMap = groups.stream().collect(groupingBy(Group::getEmail));
+        Map<String, List<Group>> emailToGroupMap = groups.stream().collect(groupingBy(group -> group.getEmail().toLowerCase().split("@")[0]));
 
-        Set<String> allUsers = memberMapFromExternalFile.values().stream().flatMap(Collection::stream).collect(Collectors.toSet());
+        Set<String> usersToPutOrKeepInGroup = memberMapFromExternalFile.values().stream().flatMap(Collection::stream).collect(Collectors.toSet());
 
         Group groupForAllUsers = emailToGroupMap.get(putAllMembersIn.get(0)).get(0);
 
-
+        sync(service, usersToPutOrKeepInGroup, groupForAllUsers);
         System.out.println();
 
+        groupsToSync.forEach(groupEmail -> {
+            Group groupToSync = emailToGroupMap.get(groupEmail).get(0);
+            List<String> usersToKeepInGroup = memberMapFromExternalFile.computeIfAbsent(groupEmail, s -> new ArrayList<>());
+            sync(service, usersToKeepInGroup, groupToSync);
+            System.out.println();
+        });
+
+    }
+
+    private static void sync(Directory service, Collection<String> usersToPutOrKeepInGroup, Group group) {
+        Map<String, List<Member>> currentGroupMembersByEmail = getMembers(service, group).stream()
+                .collect(groupingBy(member -> member.getEmail().toLowerCase())); //toLower is important to avoid mismatches
+        Set<String> emailsOfCurrentGroupMembers = currentGroupMembersByEmail.keySet();
+
+        List<String> toInsert = new ArrayList<>(CollectionUtils.subtract(usersToPutOrKeepInGroup, emailsOfCurrentGroupMembers));
+        List<String> toDelete = new ArrayList<>(CollectionUtils.subtract(emailsOfCurrentGroupMembers, usersToPutOrKeepInGroup));
+
+        Collections.sort(toInsert);
+        Collections.sort(toDelete);
+
+        System.out.println(group.getEmail());
+        toDelete.forEach(s -> System.out.println("DELETE " + s));
+        toInsert.forEach(s -> System.out.println("INSERT " + s));
     }
 
     private static List<Group> getAllGroups(Directory service) throws IOException {
@@ -114,11 +140,6 @@ public class Main {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    private static boolean groupIsPresentInMemberMap(Group group, Map<String, List<String>> memberMapFromExternalFile) {
-        String beforeAt = group.getEmail().split("@")[0];
-        return memberMapFromExternalFile.containsKey(beforeAt);
     }
 
     // Build a new authorized API client service.
