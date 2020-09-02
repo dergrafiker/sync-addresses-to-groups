@@ -3,7 +3,6 @@ package main;
 import com.google.api.services.admin.directory.Directory;
 import com.google.api.services.admin.directory.model.Group;
 import com.google.api.services.admin.directory.model.Member;
-import org.apache.commons.collections4.CollectionUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -18,16 +17,20 @@ public class SyncLists {
     static void pretendSync(Directory service, Collection<String> usersToPutOrKeepInGroup, Group group) {
         Set<String> emailsOfCurrentGroupMembers = collectLowerCaseEmails(getMembers(service, group));
 
-        List<String> toInsert = new ArrayList<>(CollectionUtils.subtract(usersToPutOrKeepInGroup, emailsOfCurrentGroupMembers));
-        List<String> toDelete = new ArrayList<>(CollectionUtils.subtract(emailsOfCurrentGroupMembers, usersToPutOrKeepInGroup));
-
-        Collections.sort(toInsert);
-        Collections.sort(toDelete);
+        List<String> toInsert = subtract(usersToPutOrKeepInGroup, emailsOfCurrentGroupMembers);
+        List<String> toDelete = subtract(emailsOfCurrentGroupMembers, usersToPutOrKeepInGroup);
 
         System.out.println(group.getEmail());
         toDelete.forEach(s -> System.out.println("DELETE " + s));
         toInsert.forEach(s -> System.out.println("INSERT " + s));
         System.out.println();
+    }
+
+    private static <T extends Comparable<T>> List<T> subtract(Collection<T> base, Collection<T> remove) {
+        List<T> c = new ArrayList<>(base);
+        c.removeAll(remove);
+        Collections.sort(c);
+        return c;
     }
 
     private static Set<String> collectLowerCaseEmails(List<Member> members) {
@@ -37,11 +40,8 @@ public class SyncLists {
     static void sync(Directory service, Collection<String> usersToPutOrKeepInGroup, Group group) {
         Set<String> emailsOfCurrentGroupMembers = collectLowerCaseEmails(getMembers(service, group));
 
-        List<String> toInsert = new ArrayList<>(CollectionUtils.subtract(usersToPutOrKeepInGroup, emailsOfCurrentGroupMembers));
-        List<String> toDelete = new ArrayList<>(CollectionUtils.subtract(emailsOfCurrentGroupMembers, usersToPutOrKeepInGroup));
-
-        Collections.sort(toInsert);
-        Collections.sort(toDelete);
+        List<String> toInsert = subtract(usersToPutOrKeepInGroup, emailsOfCurrentGroupMembers);
+        List<String> toDelete = subtract(emailsOfCurrentGroupMembers, usersToPutOrKeepInGroup);
 
         String groupKey = group.getEmail();
         System.out.println(groupKey);
