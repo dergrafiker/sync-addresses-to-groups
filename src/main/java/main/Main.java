@@ -33,9 +33,15 @@ public class Main {
         SyncLists.pretendSync(service, usersToPutOrKeepInGroup, groupForAllUsers);
 
         groupsToSync.forEach(groupEmail -> {
-            Group groupToSync = emailToGroupMap.get(groupEmail).get(0);
-            List<String> usersToKeepInGroup = memberMapFromExternalFile.computeIfAbsent(groupEmail, s -> new ArrayList<>());
-            SyncLists.pretendSync(service, usersToKeepInGroup, groupToSync);
+            List<Group> matchingLists = emailToGroupMap.get(groupEmail);
+            if (matchingLists != null && !matchingLists.isEmpty()) {
+                Group groupToSync = matchingLists.get(0);
+                List<String> usersToKeepInGroup = memberMapFromExternalFile.computeIfAbsent(groupEmail, s -> new ArrayList<>());
+                SyncLists.pretendSync(service, usersToKeepInGroup, groupToSync);
+            } else {
+                System.out.println(groupEmail + " was not found remote");
+                System.out.println();
+            }
         });
 
         System.out.println("check output above for errors before proceeding");
