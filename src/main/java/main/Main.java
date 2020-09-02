@@ -19,23 +19,24 @@ public class Main {
     public static void main(String... args) throws IOException, GeneralSecurityException {
         Map<String, List<String>> memberMapFromExternalFile = ReadResources.readMemberMapFromExternalFile("mapping");
         List<String> groupsToSync = ReadResources.readLinesFromExternalFile("groupsToSync");
-        List<String> putAllMembersIn = ReadResources.readLinesFromExternalFile("putAllMembersIn");
+        String listToPutAllMembersIn = expectSingleItem(ReadResources.readLinesFromExternalFile("putAllMembersIn"));
 
         Directory service = CredentialHelper.getDirectoryClient();
 
-        List<Group> groups = SyncLists.getAllGroups(service);
-        Map<String, List<Group>> emailToGroupMap = groups.stream().collect(groupingBy(group -> getUserFromEmail(group.getEmail().toLowerCase())));
+        List<Group> allGroups = SyncLists.getAllGroups(service);
+        Map<String, List<Group>> emailToGroupMap = allGroups.stream()
+                .collect(groupingBy(group -> getUserPartFromEmail(group.getEmail().toLowerCase())));
 
-        Set<String> usersToPutOrKeepInGroup = memberMapFromExternalFile.values().stream().flatMap(Collection::stream).collect(Collectors.toSet());
+        Set<String> allUsers = memberMapFromExternalFile.values().stream().flatMap(Collection::stream).collect(Collectors.toSet());
 
-        Group groupForAllUsers = emailToGroupMap.get(putAllMembersIn.get(0)).get(0);
+        Group groupForAllUsers = expectSingleItem(emailToGroupMap.get(listToPutAllMembersIn));
 
-        SyncLists.pretendSync(service, usersToPutOrKeepInGroup, groupForAllUsers);
+        SyncLists.pretendSync(service, allUsers, groupForAllUsers);
 
         groupsToSync.forEach(groupEmail -> {
             List<Group> matchingLists = emailToGroupMap.get(groupEmail);
             if (matchingLists != null && !matchingLists.isEmpty()) {
-                Group groupToSync = matchingLists.get(0);
+                Group groupToSync = expectSingleItem(matchingLists);
                 List<String> usersToKeepInGroup = memberMapFromExternalFile.computeIfAbsent(groupEmail, s -> new ArrayList<>());
                 SyncLists.pretendSync(service, usersToKeepInGroup, groupToSync);
             } else {
@@ -54,10 +55,10 @@ public class Main {
                 break;
             case PROCEED:
                 System.out.println("applying changes");
-                SyncLists.sync(service, usersToPutOrKeepInGroup, groupForAllUsers);
+                SyncLists.sync(service, allUsers, groupForAllUsers);
 
                 groupsToSync.forEach(groupEmail -> {
-                    Group groupToSync = emailToGroupMap.get(groupEmail).get(0);
+                    Group groupToSync = expectSingleItem(emailToGroupMap.get(groupEmail));
                     List<String> usersToKeepInGroup = memberMapFromExternalFile.computeIfAbsent(groupEmail, s -> new ArrayList<>());
                     SyncLists.sync(service, usersToKeepInGroup, groupToSync);
                 });
@@ -67,7 +68,17 @@ public class Main {
         }
     }
 
-    private static String getUserFromEmail(String email) {
+    private static <T> T expectSingleItem(List<T> list) {
+        if (list != null && list.size() == 1) {
+            return list.get(0);
+        } else if (list == null || list.size() == 0) {
+            throw new IllegalArgumentException("list must not be empty");
+        } else {
+            throw new IllegalArgumentException("list must have exactly one item");
+        }
+    }
+
+    private static String getUserPartFromEmail(String email) {
         return email.split("@")[0];
     }
 }
