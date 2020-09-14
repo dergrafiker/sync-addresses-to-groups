@@ -58,9 +58,14 @@ public class Main {
                 SyncLists.sync(service, allUsers, groupForAllUsers);
 
                 groupsToSync.forEach(groupEmail -> {
-                    Group groupToSync = expectSingleItem(emailToGroupMap.get(groupEmail));
-                    List<String> usersToKeepInGroup = memberMapFromExternalFile.computeIfAbsent(groupEmail, s -> new ArrayList<>());
-                    SyncLists.sync(service, usersToKeepInGroup, groupToSync);
+                    List<Group> list = emailToGroupMap.get(groupEmail);
+                    try {
+                        Group groupToSync = expectSingleItem(list);
+                        List<String> usersToKeepInGroup = memberMapFromExternalFile.computeIfAbsent(groupEmail, s -> new ArrayList<>());
+                        SyncLists.sync(service, usersToKeepInGroup, groupToSync);
+                    } catch (IllegalArgumentException e) {
+                        System.out.printf("Skipping list %s. Error was '%s'%n", groupEmail, e.getMessage());
+                    }
                 });
                 break;
             default:
