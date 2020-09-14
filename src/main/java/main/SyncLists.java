@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -80,7 +81,8 @@ public class SyncLists {
 
     private static List<Member> getMembers(Directory service, Group group) {
         try {
-            return service.members().list(group.getEmail()).execute().getMembers();
+            return Optional.ofNullable(service.members().list(group.getEmail()).execute().getMembers())
+                    .orElse(Collections.emptyList());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
