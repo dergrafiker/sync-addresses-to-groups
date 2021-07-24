@@ -22,11 +22,6 @@ public class SyncLists {
         List<String> toDelete = subtract(emailsOfCurrentGroupMembers, usersToPutOrKeepInGroup);
 
         System.out.println(group.getEmail());
-        try {
-            System.out.println(group.toPrettyString());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
         toDelete.forEach(s -> System.out.println("DELETE " + s));
         toInsert.forEach(s -> System.out.println("INSERT " + s));
         System.out.println();
