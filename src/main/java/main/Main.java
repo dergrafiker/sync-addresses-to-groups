@@ -1,7 +1,7 @@
 package main;
 
-import com.google.api.services.admin.directory.Directory;
-import com.google.api.services.admin.directory.model.Group;
+import com.google.api.services.directory.Directory;
+import com.google.api.services.directory.model.Group;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
