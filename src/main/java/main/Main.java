@@ -18,7 +18,6 @@ public class Main {
 
     public static void main(String... args) throws IOException, GeneralSecurityException {
         Map<String, List<String>> memberMapFromExternalFile = ReadResources.readMemberMapFromExternalFile("mapping");
-        List<String> groupsToSync = ReadResources.readLinesFromExternalFile("groupsToSync");
         String listToPutAllMembersIn = expectSingleItem(ReadResources.readLinesFromExternalFile("putAllMembersIn"));
 
         Directory service = CredentialHelper.getDirectoryClient();
@@ -33,7 +32,7 @@ public class Main {
 
         SyncLists.pretendSync(service, allUsers, groupForAllUsers);
 
-        groupsToSync.forEach(groupEmail -> {
+        memberMapFromExternalFile.keySet().forEach(groupEmail -> {
             List<Group> matchingLists = emailToGroupMap.get(groupEmail);
             if (matchingLists != null && !matchingLists.isEmpty()) {
                 Group groupToSync = expectSingleItem(matchingLists);
@@ -57,7 +56,7 @@ public class Main {
                 System.out.println("applying changes");
                 SyncLists.sync(service, allUsers, groupForAllUsers);
 
-                groupsToSync.forEach(groupEmail -> {
+                memberMapFromExternalFile.keySet().forEach(groupEmail -> {
                     List<Group> list = emailToGroupMap.get(groupEmail);
                     try {
                         Group groupToSync = expectSingleItem(list);
